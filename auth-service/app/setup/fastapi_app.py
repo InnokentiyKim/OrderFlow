@@ -61,10 +61,10 @@ def create_fastapi_app() -> FastAPI:
 
     # Application Initialization
     app = FastAPI(
-        title="Payment service API",
+        title="Authentication service API",
         version="1.0.0",
         terms_of_service="",
-        description="A payment service API built with FastAPI",
+        description="An auth service API built with FastAPI",
         lifespan=lifespan,
     )
     # Register exception handlers
