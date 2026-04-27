@@ -111,6 +111,8 @@ class UserService:
         if not user:
             raise UserNotFoundError
 
+        self._logger.ainfo("Retrieved user info", user_id=user.id)
+
         return results.UserInfo.from_model(user)
 
 
