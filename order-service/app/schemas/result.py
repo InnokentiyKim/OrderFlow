@@ -63,7 +63,7 @@ class CreateOrderResult:
 @dataclass(slots=True, frozen=True)
 class CurrentUser:
     user_id: uuid.UUID
-    role: str  # "user" | "admin"
+    role: str
 
     @property
     def is_admin(self) -> bool:

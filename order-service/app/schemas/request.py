@@ -9,7 +9,7 @@ from app.common.enums import CurrencyEnum
 class OrderItemDTO(BaseRequestDTO):
     product_id: str = Field(min_length=1, max_length=255)
     name: str = Field(min_length=1, max_length=255)
-    quantity: int = Field(gt=0)
+    quantity: int = Field(gt=0, le=1000)
     unit_price: Decimal = Field(gt=0, max_digits=15, decimal_places=4)
 
 
