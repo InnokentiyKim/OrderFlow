@@ -20,7 +20,6 @@ async def create_order(
     current_user: CurrentUserDep,
     service: OrderServiceDependency,
 ) -> CreateOrderResponseDTO:
-    # Compute total_amount from items
     total_amount = sum(item.unit_price * item.quantity for item in dto.items)
 
     items_payload = [item.model_dump(mode="json") for item in dto.items]

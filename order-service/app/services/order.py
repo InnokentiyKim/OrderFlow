@@ -42,6 +42,7 @@ class OrderService:
         self._logger = get_logger("OrderService")
 
     async def create_order(self, cmd: CreateOrderCommand) -> result.CreateOrderResult:
+        """Create a new order in the system."""
         saga_id = uuid.uuid4()
         total_amount: Decimal = cmd.total_amount
         items_list = list(cmd.items)
@@ -55,17 +56,15 @@ class OrderService:
             saga_id=saga_id,
         )
 
-        # The session already has an open RLS-aware transaction (started by
-        # provide_db_session). We just flush — no nested transaction needed.
+        # The session already has an open RLS-aware transaction
         await self._dao.create_order(self._session, order)
         await self._session.flush()
         await self._logger.ainfo(
             "Created new order", order_id=order.id, user_id=order.user_id, saga_id=saga_id
         )
 
-        # After the savepoint is released (data visible in the outer txn)
-        # publish to Kafka.  If Kafka is down we log and continue — the order
-        # is already durably persisted in the DB.
+        # After the savepoint is released (data visible in the outer txn) publish to Kafka.
+        # If Kafka is down we log and continue — the order is already durably persisted in the DB.
         event = OrderCreatedEvent(
             event_id=uuid.uuid4(),
             saga_id=saga_id,
@@ -92,8 +91,7 @@ class OrderService:
     async def get_orders(
         self, current_user: CurrentUser
     ) -> list[result.GetOrderResult]:
-        # RLS handles visibility: app_customer sees only own rows,
-        # app_admin sees all. No Python filter needed.
+        """Fetch all orders visible to the current user based on RLS policies."""
         orders = await self._dao.get_orders(self._session)
         self._logger.ainfo("Fetched orders for user", user_id=current_user.user_id)
         return [result.GetOrderResult.from_model(o) for o in orders]
@@ -101,7 +99,7 @@ class OrderService:
     async def get_order(
         self, order_id: uuid.UUID, current_user: CurrentUser
     ) -> result.GetOrderResult:
-        # RLS: DB returns None for a foreign order → 404 (no existence leak).
+        """Fetch a specific order by its ID, ensuring the current user has access based on RLS policies."""
         order = await self._dao.get_order_by_id(self._session, order_id)
         if order is None:
             raise exceptions.ItemNotFoundError(message="Order not found")
@@ -112,9 +110,13 @@ class OrderService:
     async def cancel_order(
         self, order_id: uuid.UUID, current_user: CurrentUser
     ) -> result.GetOrderResult:
-        # SELECT FOR UPDATE works inside the provider's transaction — no
-        # begin_nested() / SAVEPOINT needed.  The row lock is held until
-        # the outer transaction commits at the end of the HTTP request.
+        """
+        Cancel an order if it's in PENDING status.
+
+        This method acquires a row lock to ensure safe concurrent updates.
+        It checks the current status of the order and only allows cancellation if it's still PENDING.
+        If the order is already processed or cancelled, it raises an error.
+        """
         order = await self._dao.get_order_by_id_for_update(self._session, order_id)
 
         if order is None:

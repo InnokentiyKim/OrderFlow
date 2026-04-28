@@ -22,26 +22,7 @@ _ROLE_MAP: dict[str, str] = {
 
 
 class RLSContextMiddleware:
-    """Pure ASGI middleware — runs before every request.
-
-    Reads the Bearer JWT (without verifying the signature — that is the job
-    of the auth middleware / FastAPI dependency), extracts ``sub`` (user_id)
-    and ``role``, then stores them in ContextVars.
-
-    ``provide_db_session`` picks up these ContextVars and issues:
-
-        SET LOCAL ROLE <pg_role>
-        SET LOCAL app.current_user_id = '<uuid>'
-
-    inside every database transaction, so PostgreSQL RLS policies fire
-    automatically — no application-level ownership checks required.
-
-    If the request carries no token (unauthenticated), the ContextVars are
-    left at their default ``None`` values and the session is opened without
-    any role switch.  Unauthenticated routes (e.g. /health) still work; any
-    protected route will fail at the FastAPI dependency level before touching
-    the database.
-    """
+    """ASGI middleware that parses the Authorization header for JWTs and populates ContextVars for RLS."""
 
     def __init__(self, app: ASGIApp) -> None:
         self.app = app

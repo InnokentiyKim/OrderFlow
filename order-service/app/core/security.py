@@ -106,6 +106,7 @@ async def _get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(_bearer),
     security: SecurityAdapter = Depends(provide_security_adapter),
 ) -> CurrentUser:
+    """Get the current user from the access token."""
     token = credentials.credentials
     # verify_token checks signature, expiry and token_type
     user_id = await security.verify_token(token, AuthTokenTypeEnum.ACCESS)

@@ -10,6 +10,7 @@ logger = structlog.get_logger(__name__)
 
 
 class KafkaProducerClient:
+    """A wrapper around AIOKafkaProducer that provides structured logging and error handling."""
     def __init__(self) -> None:
         self._producer = AIOKafkaProducer(
             bootstrap_servers=app_config.broker.kafka_bootstrap_servers,
@@ -20,10 +21,12 @@ class KafkaProducerClient:
         )
 
     async def start(self) -> None:
+        """Start the Kafka producer; must be called before sending messages."""
         await self._producer.start()
         await logger.ainfo("Kafka producer started")
 
     async def stop(self) -> None:
+        """Stop the Kafka producer; should be called during application shutdown."""
         await self._producer.stop()
         await logger.ainfo("Kafka producer stopped")
 
