@@ -11,6 +11,7 @@ logger = structlog.get_logger(__name__)
 
 class KafkaProducerClient:
     """A wrapper around AIOKafkaProducer that provides structured logging and error handling."""
+
     def __init__(self) -> None:
         self._producer = AIOKafkaProducer(
             bootstrap_servers=app_config.broker.kafka_bootstrap_servers,

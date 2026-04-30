@@ -60,7 +60,10 @@ class OrderService:
         await self._dao.create_order(self._session, order)
         await self._session.flush()
         await self._logger.ainfo(
-            "Created new order", order_id=order.id, user_id=order.user_id, saga_id=saga_id
+            "Created new order",
+            order_id=order.id,
+            user_id=order.user_id,
+            saga_id=saga_id,
         )
 
         # After the savepoint is released (data visible in the outer txn) publish to Kafka.
@@ -93,7 +96,9 @@ class OrderService:
     ) -> list[result.GetOrderResult]:
         """Fetch all orders visible to the current user based on RLS policies."""
         orders = await self._dao.get_orders(self._session)
-        self._logger.ainfo("Fetched orders for user", user_id=current_user.user_id)
+        await self._logger.ainfo(
+            "Fetched orders for user", user_id=current_user.user_id
+        )
         return [result.GetOrderResult.from_model(o) for o in orders]
 
     async def get_order(
@@ -104,7 +109,9 @@ class OrderService:
         if order is None:
             raise exceptions.ItemNotFoundError(message="Order not found")
 
-        self._logger.ainfo("Fetched order", order_id=order_id, user_id=current_user.user_id)
+        await self._logger.ainfo(
+            "Fetched order", order_id=order_id, user_id=current_user.user_id
+        )
         return result.GetOrderResult.from_model(order)
 
     async def cancel_order(
@@ -129,7 +136,9 @@ class OrderService:
 
         order.set_status(OrderStatusEnum.CANCELLED)
         await self._session.flush()
-        self._logger.ainfo("Cancelled order", order_id=order_id, user_id=current_user.user_id)
+        await self._logger.ainfo(
+            "Cancelled order", order_id=order_id, user_id=current_user.user_id
+        )
 
         return result.GetOrderResult.from_model(order)
 
