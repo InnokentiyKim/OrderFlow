@@ -32,9 +32,7 @@ async def ready():
     try:
         from aiokafka import AIOKafkaProducer
 
-        probe = AIOKafkaProducer(
-            bootstrap_servers=settings.kafka_bootstrap_servers
-        )
+        probe = AIOKafkaProducer(bootstrap_servers=settings.kafka_bootstrap_servers)
         await probe.start()
         await probe.stop()
         statuses["kafka"] = "ok"

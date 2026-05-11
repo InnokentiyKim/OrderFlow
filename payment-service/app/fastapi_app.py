@@ -32,7 +32,7 @@ logger = structlog.get_logger(__name__)
 
 
 def deterministic_roll(message_id: str) -> float:
-    seed = int(hashlib.md5(message_id.encode()).hexdigest(), 16) % (2 ** 32)
+    seed = int(hashlib.md5(message_id.encode()).hexdigest(), 16) % (2**32)
     return random.Random(seed).random()
 
 
@@ -84,7 +84,10 @@ async def handle_command(
                 event_type="payment.refunded",
                 saga_id=cmd.saga_id,
                 order_id=cmd.order_id,
-                payload={"message": "Payment refunded", "amount": cmd.payload.get("amount")},
+                payload={
+                    "message": "Payment refunded",
+                    "amount": cmd.payload.get("amount"),
+                },
             )
 
         case CommandType.CHARGE_PAYMENT:
@@ -106,7 +109,10 @@ async def handle_command(
                     event_type="payment.failed",
                     saga_id=cmd.saga_id,
                     order_id=cmd.order_id,
-                    payload={"message": "Payment failed", "reason": "Insufficient funds"},
+                    payload={
+                        "message": "Payment failed",
+                        "reason": "Insufficient funds",
+                    },
                 )
 
         case _:
@@ -171,12 +177,11 @@ async def lifespan(app: FastAPI):
             await task
         except asyncio.CancelledError:
             pass
-        await consumer.stop()
         await producer.stop()
+        await consumer.stop()
         await redis.aclose()
         await logger.ainfo("Graceful shutdown complete")
 
 
 app = FastAPI(title="Payment Service Stub", lifespan=lifespan)
 app.include_router(health_router)
-

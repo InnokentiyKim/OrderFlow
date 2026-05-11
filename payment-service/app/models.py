@@ -31,4 +31,3 @@ class Event(BaseModel):
 
     def to_kafka_bytes(self) -> bytes:
         return self.model_dump_json().encode()
-

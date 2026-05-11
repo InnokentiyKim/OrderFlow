@@ -2,7 +2,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
 
     # Kafka
     kafka_bootstrap_servers: str = "kafka:9092"
@@ -11,7 +13,6 @@ class Settings(BaseSettings):
     kafka_output_topic: str = "order.events"
     kafka_auto_offset_reset: str = "earliest"
     kafka_enable_auto_commit: bool = False
-
 
     # Redis
     redis_url: str = "redis://redis:6379/1"
