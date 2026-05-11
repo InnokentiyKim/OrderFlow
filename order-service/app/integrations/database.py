@@ -48,3 +48,16 @@ async def provide_db_session() -> AsyncIterable[AsyncSession]:
 
 
 SessionDependency: TypeAlias = Annotated[AsyncSession, Depends(provide_db_session)]  # type: ignore
+
+
+# Plain session factory (no RLS) for background consumers
+_plain_session_factory = async_sessionmaker(
+    engine,
+    class_=AsyncSession,
+    expire_on_commit=app_config.database.session.expire_on_commit,
+)
+
+
+def get_plain_session_factory() -> async_sessionmaker[AsyncSession]:
+    """Return a session factory without RLS context – for background consumers."""
+    return _plain_session_factory
