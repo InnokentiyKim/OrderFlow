@@ -120,7 +120,7 @@ def provide_user_service(
     session: SessionDependency,
     security_adapter: SecurityDependency,
 ) -> UserService:
-    return UserService(session=session, security_adapter=security_adapter) # type: ignore
+    return UserService(session=session, security_adapter=security_adapter)  # type: ignore
 
 
 UserServiceDependency: TypeAlias = Annotated[UserService, Depends(provide_user_service)]
