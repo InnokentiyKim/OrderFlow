@@ -2,7 +2,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
 
     kafka_bootstrap_servers: str = "kafka:9092"
     kafka_consumer_group: str = "inventory-service"
@@ -22,4 +24,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-

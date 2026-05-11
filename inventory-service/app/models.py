@@ -34,4 +34,3 @@ class InventoryEvent(BaseModel):
 
     def kafka_key(self) -> bytes:
         return self.saga_id.encode()
-
