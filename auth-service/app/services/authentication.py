@@ -101,7 +101,9 @@ class AuthenticationService:
         await self._refresh_session.add_refresh_token(
             session=self._session, token=refresh_token
         )
-        await self._logger.ainfo("Created new auth session", user_id=cmd.user_id, role=cmd.role)
+        await self._logger.ainfo(
+            "Created new auth session", user_id=cmd.user_id, role=cmd.role
+        )
 
         return results.AuthTokens(
             access_token=SecretStr(access_token_raw),
