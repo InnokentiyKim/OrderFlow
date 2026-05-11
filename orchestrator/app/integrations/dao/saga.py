@@ -95,7 +95,7 @@ class SagaStateDAO:
         """
         from app.common.enums import (
             SagaStateEnum,
-        )  # avoid circular import at module level
+        )
 
         terminal_states = [
             SagaStateEnum.COMPLETED,

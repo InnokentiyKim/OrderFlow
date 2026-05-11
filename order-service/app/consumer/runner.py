@@ -129,6 +129,11 @@ async def _handle_message(
         async with session_factory() as session:
             async with session.begin():
                 await dao.update_order_status(session, order_id, new_status)
+                await logger.ainfo(
+                    "Order status updated in DB",
+                    order_id=str(order_id),
+                    status=new_status,
+                )
     except Exception as exc:
         await logger.aerror(
             "Cache consumer: DB update failed – offset NOT committed, will retry",

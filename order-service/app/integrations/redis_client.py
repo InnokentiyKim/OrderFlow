@@ -21,14 +21,9 @@ class RedisClient:
 
     def __init__(self) -> None:
         cfg = app_config.redis
-        _raw_password = (
-            cfg.redis_password.get_secret_value() if cfg.redis_password else ""
-        )
-        password = _raw_password or None
         self._redis: Redis = Redis(
             host=cfg.redis_host,
             port=cfg.redis_port,
-            password=password,
             decode_responses=True,
             socket_timeout=cfg.redis_socket_timeout,
             socket_connect_timeout=cfg.redis_socket_connect_timeout,
