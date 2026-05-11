@@ -1,9 +1,11 @@
 import uuid
+from datetime import datetime, UTC
 from typing import Sequence
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.enums import OrderStatusEnum
 from app.models.orders import Order
 
 
@@ -49,3 +51,17 @@ class OrderDAO:
         stmt = select(Order)
         result = await session.execute(stmt)
         return result.scalars().all()
+
+    @staticmethod
+    async def update_order_status(
+        session: AsyncSession,
+        order_id: uuid.UUID,
+        status: OrderStatusEnum,
+    ) -> None:
+        """Update order status and updated_at timestamp (used by consumer)."""
+        stmt = (
+            update(Order)
+            .where(Order.id == order_id)
+            .values(status=status, updated_at=datetime.now(UTC))
+        )
+        await session.execute(stmt)
