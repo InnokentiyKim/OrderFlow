@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 
 import structlog
@@ -13,8 +14,10 @@ from app.core.config import app_config
 from app.core.logger import setup_logging
 from app.setup.exception_handlers import general_exception_handler
 from app.setup.middleware import AccessLogMiddleware, RLSContextMiddleware
-from app.integrations.database import engine
+from app.integrations.database import engine, get_plain_session_factory
 from app.integrations.kafka import KafkaProducerClient
+from app.integrations.redis_client import RedisClient
+from app.consumer.runner import run_cache_consumer
 from app.common.exceptions import ExceptionBase
 from app.setup.rls_setup import apply_rls_setup
 
@@ -44,18 +47,32 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     await producer.start()
     app.state.kafka_producer = producer
 
+    redis = RedisClient()
+    await redis.start()
+    app.state.redis = redis
+
     # Bootstrap RLS roles + policies once per startup (idempotent).
-    # Runs AFTER Alembic migrations — tables must exist before we set policies.
     await apply_rls_setup(engine)
+
+    # Start cache-invalidation consumer as a background task
+    session_factory = get_plain_session_factory()
+    shutdown_event = asyncio.Event()
+    consumer_task = asyncio.create_task(
+        run_cache_consumer(redis, session_factory, shutdown_event),
+        name="cache-invalidation-consumer",
+    )
 
     yield
 
+    await logger.ainfo("shutdown signal received")
+    shutdown_event.set()
+    await consumer_task  # wait for clean consumer exit
+
     await producer.stop()
+    await logger.ainfo("producer stopped")
+    await redis.stop()
     await engine.dispose()
-    await logger.ainfo(
-        "Application shutting down",
-        service=app_config.general.service_name,
-    )
+    await logger.ainfo("db pool closed")
 
 
 def create_fastapi_app() -> FastAPI:
