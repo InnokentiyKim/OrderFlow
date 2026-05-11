@@ -32,7 +32,9 @@ class GeneralSettings(CustomBaseSettings):
 
 
 class SecuritySettings(CustomBaseSettings):
-    jwt_secret_key: SecretStr = SecretStr("FOAf+0nLwiRobdlA4/5gDOMttwaOU1f70c0I1zGba/M=")
+    jwt_secret_key: SecretStr = SecretStr(
+        "FOAf+0nLwiRobdlA4/5gDOMttwaOU1f70c0I1zGba/M="
+    )
     jwt_algorithm: str = "HS256"
     jwt_key_id: str = "primary"
     jwt_access_lifetime_minutes: int = 15
