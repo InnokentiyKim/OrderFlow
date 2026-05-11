@@ -30,7 +30,7 @@ logger = structlog.get_logger(__name__)
 
 def deterministic_roll(message_id: str) -> float:
     """Return float in [0, 1) deterministically seeded from message_id."""
-    seed = int(hashlib.md5(message_id.encode()).hexdigest(), 16) % (2 ** 32)
+    seed = int(hashlib.md5(message_id.encode()).hexdigest(), 16) % (2**32)
     return random.Random(seed).random()
 
 
@@ -131,7 +131,6 @@ async def consume_loop(
             await logger.aerror("Error processing message", error=str(exc))
 
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     redis = Redis.from_url(settings.redis_url, decode_responses=True)
@@ -164,7 +163,6 @@ async def lifespan(app: FastAPI):
         await producer.stop()
         await redis.aclose()
         await logger.ainfo("Graceful shutdown complete")
-
 
 
 app = FastAPI(title="Inventory Service Stub", lifespan=lifespan)
