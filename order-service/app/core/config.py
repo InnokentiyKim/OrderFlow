@@ -59,6 +59,10 @@ class BrokerSettings(CustomBaseSettings):
     kafka_retries: int = 3
     kafka_enable_idempotence: bool = False
     kafka_topic_order_events: str = "order.events"
+    kafka_auto_offset_reset: str = "earliest"
+    kafka_enable_auto_commit: bool = False
+
+    cache_group_id: str = "order-service-cache"
 
     @field_validator("kafka_acks", mode="before")
     @classmethod
@@ -127,12 +131,26 @@ class DatabaseSettings(CustomBaseSettings):
         )
 
 
+class RedisSettings(CustomBaseSettings):
+    redis_host: str = "localhost"
+    redis_port: int = 6379
+    redis_password: SecretStr | None = None
+    redis_cache_ttl: int = 60  # seconds; override via REDIS_CACHE_TTL env var
+    redis_socket_timeout: float = (
+        1.0  # seconds; override via REDIS_SOCKET_TIMEOUT env var
+    )
+    redis_socket_connect_timeout: float = (
+        1.0  # override via REDIS_SOCKET_CONNECT_TIMEOUT
+    )
+
+
 class Configs(BaseSettings):
     general: GeneralSettings = Field(default_factory=GeneralSettings)
     auth: AuthenticationSettings = Field(default_factory=AuthenticationSettings)
     logger: LoggerSettings = Field(default_factory=LoggerSettings)
     broker: BrokerSettings = Field(default_factory=BrokerSettings)
     database: DatabaseSettings = Field(default_factory=DatabaseSettings)
+    redis: RedisSettings = Field(default_factory=RedisSettings)
 
 
 def create_configs() -> Configs:
