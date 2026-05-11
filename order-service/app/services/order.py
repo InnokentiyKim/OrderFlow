@@ -13,6 +13,7 @@ from app.schemas.result import CurrentUser
 from app.integrations.dao.order import OrderDAO
 from app.integrations.database import provide_db_session
 from app.integrations.kafka import KafkaProducerClient
+from app.integrations.cache import OrderCache
 from app.models.orders import Order
 from app.schemas.command import CreateOrderCommand
 from app.schemas.event import OrderCreatedEvent
@@ -24,9 +25,15 @@ def _get_kafka_producer(request: Request) -> KafkaProducerClient:
     return request.app.state.kafka_producer
 
 
+def _get_order_cache(request: Request) -> OrderCache:
+    return OrderCache(request.app.state.redis)
+
+
 KafkaProducerDep: TypeAlias = Annotated[
     KafkaProducerClient, Depends(_get_kafka_producer)
 ]
+
+OrderCacheDep: TypeAlias = Annotated[OrderCache, Depends(_get_order_cache)]
 
 
 class OrderService:
@@ -34,10 +41,12 @@ class OrderService:
         self,
         session: AsyncSession,
         producer: KafkaProducerClient,
+        order_cache: OrderCache,
         dao: OrderDAO | None = None,
     ) -> None:
         self._session = session
         self._producer = producer
+        self._cache = order_cache
         self._dao = dao or OrderDAO()
         self._logger = get_logger("OrderService")
 
@@ -104,15 +113,29 @@ class OrderService:
     async def get_order(
         self, order_id: uuid.UUID, current_user: CurrentUser
     ) -> result.GetOrderResult:
-        """Fetch a specific order by its ID, ensuring the current user has access based on RLS policies."""
+        """Fetch a specific order by its ID, with Cache-Aside from Redis."""
+        cached = await self._cache.get_order(order_id)
+        if cached is not None:
+            await self._logger.ainfo(
+                "Returning order from cache",
+                order_id=order_id,
+                user_id=current_user.user_id,
+            )
+            return cached
+
         order = await self._dao.get_order_by_id(self._session, order_id)
         if order is None:
             raise exceptions.ItemNotFoundError(message="Order not found")
 
         await self._logger.ainfo(
-            "Fetched order", order_id=order_id, user_id=current_user.user_id
+            "Fetched order from DB", order_id=order_id, user_id=current_user.user_id
         )
-        return result.GetOrderResult.from_model(order)
+        order_result = result.GetOrderResult.from_model(order)
+
+        # Populate cache
+        await self._cache.set_order(order_result)
+
+        return order_result
 
     async def cancel_order(
         self, order_id: uuid.UUID, current_user: CurrentUser
@@ -136,6 +159,7 @@ class OrderService:
 
         order.set_status(OrderStatusEnum.CANCELLED)
         await self._session.flush()
+        await self._cache.invalidate(order_id)
         await self._logger.ainfo(
             "Cancelled order", order_id=order_id, user_id=current_user.user_id
         )
@@ -146,8 +170,9 @@ class OrderService:
 def _build_order_service(
     session: AsyncSession = Depends(provide_db_session),
     producer: KafkaProducerClient = Depends(_get_kafka_producer),
+    order_cache: OrderCache = Depends(_get_order_cache),
 ) -> OrderService:
-    return OrderService(session=session, producer=producer)
+    return OrderService(session=session, producer=producer, order_cache=order_cache)
 
 
 OrderServiceDependency: TypeAlias = Annotated[
